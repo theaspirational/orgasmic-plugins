@@ -50,27 +50,5 @@ uploading. This example neither transcodes nor synchronizes assets.
 
 ## Verification
 
-```sh
-RUST_TEST_THREADS=1 cargo test -p orgasmic-daemon --test node_services_routes
-RUST_TEST_THREADS=1 cargo test -p orgasmic-daemon --test node_services_routes two_gib_recording_upload_and_seek -- --ignored
-cd ui && npx vitest run src/components/__tests__/MeetingsPlayer.test.jsx src/components/__tests__/NodeBacklinks.test.tsx src/lib/__tests__/nodeServices.test.ts
-```
-
-The explicit large-file gate transfers 2,147,483,648 bytes over HTTP in 4 MiB
-chunks, verifies the content digest, and checks range reads and indexed anchors.
-It needs several GiB of free temporary disk; debug-mode hashing can take minutes.
-
-For browser verification, build the UI and run that large-file test with
-`ORGASMIC_EMBED_UI=1 ORGASMIC_UI_PREBUILT=1 ORGASMIC_SERVICE_BROWSER_SMOKE=1`.
-It prints the path of a private `browser-session.json` fixture containing a
-one-use login URL (do not log or share it). Open that session, then
-`/projects/demo/nodes/meetings`. Open the meeting, seek to 1:30, select the
-task and link the current time. Open the task, click its 1:30 backlink, and
-verify playback returns to 90 seconds. Check an additional upload through the
-file input. Only after those assertions pass, create `browser-done` alongside
-the fixture file; the test shuts down its daemon and removes its temporary
-assets. Interrupting is a failed browser verification, not a pass.
-
-Verified on 2026-09-08: the 2 GiB recording played and sought to 90 seconds;
-the task backlink returned to that exact revision/time; an 8 MiB browser upload
-played successfully. No console errors or horizontal overflow at 390 px.
+The host's recording and link routes are covered by the Orgasmic runtime's
+own tests. This plugin's JavaScript has no test runner yet.
