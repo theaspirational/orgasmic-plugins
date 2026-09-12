@@ -1,0 +1,12 @@
+* Marketplace
+:PROPERTIES:
+:ID: orgasmic-plugins
+:NAME: Orgasmic official plugins
+:DESCRIPTION: Plugins maintained by the Orgasmic project.
+:END:
+** Plugin meetings
+:PROPERTIES:
+:ID: meetings
+:SOURCE: plugins/meetings
+:DESCRIPTION: Import meeting notes, upload recordings, link timestamps to tasks, and chat about a meeting.
+:END:
