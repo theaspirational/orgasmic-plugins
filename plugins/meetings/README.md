@@ -51,4 +51,5 @@ uploading. This example neither transcodes nor synchronizes assets.
 ## Verification
 
 The host's recording and link routes are covered by the Orgasmic runtime's
-own tests. This plugin's JavaScript has no test runner yet.
+own tests. This plugin's own client logic is covered by `test/meetings.test.jsx`:
+run `npm install && npm test` from the repo root.

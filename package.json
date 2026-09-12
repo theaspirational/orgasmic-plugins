@@ -1,0 +1,17 @@
+{
+  "name": "orgasmic-plugins",
+  "private": true,
+  "type": "module",
+  "description": "Tests for the plugins in this marketplace. The plugins themselves ship as plain ESM and need no build.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vitest": "^2.1.9"
+  }
+}
