@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 import { register } from '../ui/index.js';
 import { Player } from '../ui/player.js';
+import { emitEvent } from '@orgasmic/plugin-sdk';
 
 afterEach(cleanup);
 
@@ -38,12 +39,12 @@ it('creates a meeting from pasted or imported notes without a CLI', async () => 
   await waitFor(() => expect(onOpenNode).toHaveBeenCalledWith('MEET-1'));
 });
 
-it('loads the task graph layer and writes the current immutable recording timestamp', async () => {
+it('loads task targets from the tasks plugin route and writes the current immutable recording timestamp', async () => {
   const recording = { id: 'recording', name: 'Planning.wav', media_type: 'audio/wav', revision: 'sha' };
   const ctx = { projectId: 'demo', signal: new AbortController().signal, mediaUrl: vi.fn().mockReturnValue('/media'),
     get: vi.fn(async (path) => {
       if (path.startsWith('/attachments?')) return [recording];
-      if (path === '/graph/nodes?layer=task') return [{ id: 'TASK-1', title: 'Follow up' }];
+      if (path === '/projects/demo/plugins/tasks') return [{ id: 'TASK-1', title: 'Follow up' }];
       return [];
     }), post: vi.fn().mockResolvedValue({}) };
   render(<Player ctx={ctx} nodeId="MEET-1" onOpenNode={vi.fn()} writable />);
@@ -61,6 +62,44 @@ function recordingCtx(extra = {}) {
   return { projectId: 'demo', signal: new AbortController().signal, mediaUrl: vi.fn().mockReturnValue('/media'),
     get: vi.fn(async (path) => (path.startsWith('/attachments?') ? [recording] : [])), post: vi.fn(), ...extra };
 }
+
+it('takes link targets from the tasks plugin route and refreshes the meeting list on node_changed only', async () => {
+  let View;
+  const gets = [];
+  const ctx = {
+    projectId: 'demo', signal: new AbortController().signal,
+    registerStyles: vi.fn(), registerNodeView: vi.fn((_collection, view) => { View = view; return () => {}; }),
+    get: vi.fn(async (path) => {
+      gets.push(path);
+      return path === '/graph/nodes?layer=meetings' ? [{ id: 'MEET-1', title: 'Planning' }] : [];
+    }),
+    post: vi.fn(),
+  };
+  register(ctx);
+  render(<View onOpenNode={vi.fn()} />);
+  expect(await screen.findByRole('button', { name: 'Planning' })).toBeInTheDocument();
+
+  const recording = { id: 'recording', name: 'Planning.wav', media_type: 'audio/wav', revision: 'sha' };
+  const playerCtx = { projectId: 'demo', signal: new AbortController().signal, mediaUrl: vi.fn().mockReturnValue('/media'),
+    get: vi.fn(async (path) => {
+      gets.push(path);
+      if (path.startsWith('/attachments?')) return [recording];
+      return path === '/projects/demo/plugins/tasks' ? [{ id: 'TASK-1', title: 'Follow up' }] : [];
+    }), post: vi.fn() };
+  render(<Player ctx={playerCtx} nodeId="MEET-1" onOpenNode={vi.fn()} writable />);
+  await screen.findByRole('option', { name: 'Follow up' });
+  expect(gets).not.toContain('/graph/nodes?layer=task');
+
+  const meetingsFetches = () => gets.filter((path) => path === '/graph/nodes?layer=meetings').length;
+  const before = meetingsFetches();
+  emitEvent({ topic: 'graph', payload: { kind: 'node_changed', project_id: 'demo', collection: 'meetings', node_id: 'MEET-1' } });
+  await waitFor(() => expect(meetingsFetches()).toBeGreaterThan(before));
+  const after = meetingsFetches();
+  emitEvent({ topic: 'graph', payload: { kind: 'node_changed', project_id: 'demo', collection: 'tasks', node_id: 'TASK-1' } });
+  emitEvent({ topic: 'graph', payload: { kind: 'graph_node_revised', project_id: 'demo', layer: 'meetings', node_id: 'MEET-1' } });
+  await new Promise((resolve) => { setTimeout(resolve, 20); });
+  expect(meetingsFetches()).toBe(after);
+});
 
 it('opens the meeting chat with a 30 s range chip at the playhead, clamped to the recording', async () => {
   const ctx = recordingCtx({ openChat: vi.fn() });

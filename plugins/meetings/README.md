@@ -5,7 +5,7 @@ timestamps to tasks, and chat about a meeting. The importer needs Python 3.
 Sidecars are deferred.
 
 ```sh
-orgasmic plugin add /absolute/path/to/examples/plugins/meetings
+orgasmic plugin add orgasmic-plugins/meetings
 orgasmic plugin check meetings
 orgasmic plugin enable meetings --project PROJECT
 orgasmic plugin run meetings import --project PROJECT -- /path/to/notes.txt --title 'Planning'

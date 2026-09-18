@@ -24,7 +24,7 @@ export function Player({ ctx, nodeId, onOpenNode, writable }) {
   const readLinks = can(ctx.projectId, 'links.read');
   const assets = useResource(`recordings:${ctx.projectId}:${nodeId}`, () => ctx.get(`/attachments?node=${encodeURIComponent(nodeId)}`), { enabled: readMedia });
   const links = useResource(`meeting-links:${ctx.projectId}:${nodeId}`, () => ctx.get(`/links?node=${encodeURIComponent(nodeId)}`), { enabled: readLinks });
-  const tasks = useResource(`meeting-task-targets:${ctx.projectId}`, () => ctx.get('/graph/nodes?layer=task'), { enabled: can(ctx.projectId, 'graph.read') && can(ctx.projectId, 'links.write') });
+  const tasks = useResource(`meeting-task-targets:${ctx.projectId}`, () => ctx.get(`/projects/${encodeURIComponent(ctx.projectId)}/plugins/tasks`), { enabled: can(ctx.projectId, 'tasks.read') && can(ctx.projectId, 'links.write') });
   const recordings = (assets.data || []).filter((a) => /^(audio|video)\//.test(a.media_type));
   const recording = recordings.find((a) => a.id === selected) || (!selected ? recordings[0] : undefined);
   const url = recording ? ctx.mediaUrl(nodeId, recording.id, recording.revision) : '';
@@ -33,6 +33,9 @@ export function Player({ ctx, nodeId, onOpenNode, writable }) {
   const chat = typeof ctx.openChat === 'function' && can(ctx.projectId, 'chat.write');
   useEffect(() => { alive.current = true; return () => { alive.current = false; pause.current = true; }; }, []);
   useEventStream((event) => {
+    // Links and attachments still announce only GraphNodeRevised with layer
+    // "node-services" (commit_extra, node_services.rs:214); no node_changed is
+    // emitted for these writes, so this filter stays on the graph topic.
     if (event.topic === 'graph' && event.payload.project_id === ctx.projectId && event.payload.layer === 'node-services') {
       if (readMedia) void assets.refresh();
       if (readLinks) void links.refresh();
@@ -123,7 +126,7 @@ export function Player({ ctx, nodeId, onOpenNode, writable }) {
     recording && writable && readLinks && can(ctx.projectId, 'links.write') ? h('form', { className: 'meetings', onSubmit: linkTime },
       h('label', null, 'Task to link at the current playback time', h('select', { value: target, onChange: (e) => setTarget(e.target.value), disabled: linking },
         h('option', { value: '' }, 'Choose a task'), (tasks.data || []).map((task) => h('option', { key: task.id, value: task.id }, task.title || task.id)))),
-      tasks.error ? h('p', { role: 'alert' }, String(tasks.error)) : null,
+      tasks.error ? h('p', { className: 'muted' }, 'Task targets are unavailable.') : null,
       h(Button, { type: 'submit', disabled: !target || !url || linking }, linking ? 'Linking…' : 'Link current time')) : null,
     links.error ? h('p', { role: 'alert' }, String(links.error)) : null,
     h('ul', null, (links.data || []).map((link) => h('li', { key: link.id },

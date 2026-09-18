@@ -16,8 +16,19 @@ export const Textarea = (props) => h('textarea', strip(props));
 /** The host grants every capability under test; a test that needs a denial passes its own ctx. */
 export const useMe = () => ({ can: () => true });
 
-/** The host pushes graph events; tests drive components directly instead. */
-export const useEventStream = () => {};
+/** The host pushes daemon events; tests emit them through `emitEvent`. */
+const listeners = new Set();
+export const useEventStream = (handler) => {
+  useEffect(() => {
+    listeners.add(handler);
+    return () => { listeners.delete(handler); };
+  }, [handler]);
+};
+
+/** Test driver: deliver one daemon event to every mounted listener. */
+export const emitEvent = (event) => {
+  for (const handler of [...listeners]) handler(event);
+};
 
 /** Milliseconds as `m:ss`, matching the host. */
 export function mediaTime(ms) {

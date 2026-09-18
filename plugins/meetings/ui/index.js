@@ -48,7 +48,7 @@ export function register(ctx) {
     const result = useResource(`meetings:${ctx.projectId}`, () => ctx.get('/graph/nodes?layer=meetings'));
     const [creating, setCreating] = useState(false);
     useEventStream((event) => {
-      if (event.topic === 'graph' && event.payload.project_id === ctx.projectId && event.payload.layer === 'meetings') void result.refresh();
+      if (event.topic === 'graph' && event.payload.kind === 'node_changed' && event.payload.project_id === ctx.projectId && event.payload.collection === 'meetings') void result.refresh();
     });
     const writable = can(ctx.projectId, 'nodes.write');
     return h('section', { className: 'meetings', 'aria-label': 'Meeting notes' },
